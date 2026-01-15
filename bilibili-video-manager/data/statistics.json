@@ -1,0 +1,18 @@
+{
+  "totalVideos": 214,
+  "publishedVideos": 213,
+  "unpublishedVideos": 0,
+  "publishingVideos": 1,
+  "totalViews": 70386,
+  "totalLikes": 2406,
+  "totalCoins": 1371,
+  "totalFavorites": 3017,
+  "totalDanmaku": 29,
+  "totalComments": 586,
+  "totalShares": 211,
+  "videosByCategory": {
+    "汽车": 200,
+    "生活": 2
+  },
+  "fetchTime": "2025-08-18T06:09:03.004Z"
+}
