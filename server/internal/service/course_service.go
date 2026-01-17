@@ -38,6 +38,11 @@ func (s *CourseService) GetCourseBySlug(slug string) (*model.Course, error) {
 	return s.repo.GetCourseBySlug(slug)
 }
 
+// GetCourseBySlugWithFiles 根据 slug 获取课程及其文件
+func (s *CourseService) GetCourseBySlugWithFiles(slug string) (*model.Course, error) {
+	return s.repo.GetCourseBySlugWithFiles(slug)
+}
+
 // GetCourseByID 根据 ID 获取课程
 func (s *CourseService) GetCourseByID(id uint) (*model.Course, error) {
 	return s.repo.GetCourseByID(id)
@@ -163,7 +168,7 @@ func (s *CourseService) RedeemInviteCode(userID uint, code string) (*model.Order
 // ========== Download ==========
 
 // CreateDownloadToken 创建下载令牌
-func (s *CourseService) CreateDownloadToken(userID, courseID uint) (string, error) {
+func (s *CourseService) CreateDownloadToken(userID, courseID uint, fileID uint) (string, error) {
 	// 检查是否已购买
 	purchased, _ := s.repo.CheckUserPurchased(userID, courseID)
 	if !purchased {
@@ -186,6 +191,7 @@ func (s *CourseService) CreateDownloadToken(userID, courseID uint) (string, erro
 	download := &model.Download{
 		UserID:   userID,
 		CourseID: courseID,
+		FileID:   fileID,
 		Token:    token,
 		ExpireAt: time.Now().Add(24 * time.Hour),
 	}

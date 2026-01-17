@@ -35,12 +35,13 @@ func main() {
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	contentService := service.NewContentService(contentRepo)
 	courseService := service.NewCourseService(courseRepo, userRepo)
+	fileService := service.NewFileService(courseRepo, cfg.UploadPath)
 
 	// 初始化处理器
 	userHandler := handler.NewUserHandler(userService)
 	contentHandler := handler.NewContentHandler(contentService)
-	courseHandler := handler.NewCourseHandler(courseService)
-	adminHandler := handler.NewAdminHandler(contentService, courseService)
+	courseHandler := handler.NewCourseHandler(courseService, fileService)
+	adminHandler := handler.NewAdminHandler(contentService, courseService, fileService)
 
 	// 设置 Gin 模式
 	if cfg.Env == "production" {
@@ -120,6 +121,11 @@ func main() {
 			admin.POST("/courses", adminHandler.CreateCourse)
 			admin.PUT("/courses/:id", adminHandler.UpdateCourse)
 			admin.DELETE("/courses/:id", adminHandler.DeleteCourse)
+
+			// 课程文件管理
+			admin.POST("/courses/:id/files", adminHandler.UploadCourseFile)
+			admin.GET("/courses/:id/files", adminHandler.GetCourseFiles)
+			admin.DELETE("/courses/:id/files/:fileId", adminHandler.DeleteCourseFile)
 
 			// 邀请码管理
 			admin.GET("/invite-codes", adminHandler.GetInviteCodes)

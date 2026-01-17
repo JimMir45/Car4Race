@@ -40,6 +40,7 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 		&model.Note{},
 		&model.BrowseHistory{},
 		&model.Course{},
+		&model.CourseFile{},
 		&model.Order{},
 		&model.InviteCode{},
 		&model.Download{},

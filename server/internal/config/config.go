@@ -5,10 +5,11 @@ import (
 )
 
 type Config struct {
-	Env       string
-	Port      string
-	DBPath    string
-	JWTSecret string
+	Env        string
+	Port       string
+	DBPath     string
+	JWTSecret  string
+	UploadPath string // 文件上传目录
 
 	// 短信服务配置
 	SMSProvider   string // aliyun | tencent
@@ -20,10 +21,11 @@ type Config struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Env:       getEnv("ENV", "development"),
-		Port:      getEnv("PORT", "8080"),
-		DBPath:    getEnv("DB_PATH", "./data/car4race.db"),
-		JWTSecret: getEnv("JWT_SECRET", "car4race-dev-secret-key"),
+		Env:        getEnv("ENV", "development"),
+		Port:       getEnv("PORT", "8080"),
+		DBPath:     getEnv("DB_PATH", "./data/car4race.db"),
+		JWTSecret:  getEnv("JWT_SECRET", "car4race-dev-secret-key"),
+		UploadPath: getEnv("UPLOAD_PATH", "./data/uploads"),
 
 		SMSProvider:   getEnv("SMS_PROVIDER", "aliyun"),
 		SMSAccessKey:  getEnv("SMS_ACCESS_KEY", ""),

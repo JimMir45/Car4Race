@@ -15,12 +15,14 @@ import (
 type AdminHandler struct {
 	contentService *service.ContentService
 	courseService  *service.CourseService
+	fileService    *service.FileService
 }
 
-func NewAdminHandler(contentService *service.ContentService, courseService *service.CourseService) *AdminHandler {
+func NewAdminHandler(contentService *service.ContentService, courseService *service.CourseService, fileService *service.FileService) *AdminHandler {
 	return &AdminHandler{
 		contentService: contentService,
 		courseService:  courseService,
+		fileService:    fileService,
 	}
 }
 
@@ -191,8 +193,6 @@ type CreateCourseRequest struct {
 	CoverImage  string  `json:"cover_image"`
 	Price       float64 `json:"price" binding:"required"`
 	OrigPrice   float64 `json:"orig_price"`
-	VideoURL    string  `json:"video_url"`
-	Duration    int     `json:"duration"`
 	IsPublic    bool    `json:"is_public"`
 	Sort        int     `json:"sort"`
 }
@@ -231,8 +231,6 @@ func (h *AdminHandler) CreateCourse(c *gin.Context) {
 		CoverImage:  req.CoverImage,
 		Price:       req.Price,
 		OrigPrice:   req.OrigPrice,
-		VideoURL:    req.VideoURL,
-		Duration:    req.Duration,
 		IsPublic:    req.IsPublic,
 		Sort:        req.Sort,
 	}
@@ -267,8 +265,6 @@ func (h *AdminHandler) UpdateCourse(c *gin.Context) {
 	course.CoverImage = req.CoverImage
 	course.Price = req.Price
 	course.OrigPrice = req.OrigPrice
-	course.VideoURL = req.VideoURL
-	course.Duration = req.Duration
 	course.IsPublic = req.IsPublic
 	course.Sort = req.Sort
 
@@ -348,4 +344,68 @@ func (h *AdminHandler) CreateInviteCode(c *gin.Context) {
 	}
 
 	response.Success(c, code)
+}
+
+// ========== CourseFile ==========
+
+// UploadCourseFile 上传课程文件
+func (h *AdminHandler) UploadCourseFile(c *gin.Context) {
+	courseID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "课程ID无效")
+		return
+	}
+
+	fileType := c.DefaultPostForm("file_type", "resource") // intro | resource
+	if fileType != "intro" && fileType != "resource" {
+		response.Error(c, http.StatusBadRequest, "文件类型无效")
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "请选择文件")
+		return
+	}
+
+	courseFile, err := h.fileService.UploadCourseFile(uint(courseID), fileType, file)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, courseFile)
+}
+
+// GetCourseFiles 获取课程文件列表
+func (h *AdminHandler) GetCourseFiles(c *gin.Context) {
+	courseID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "课程ID无效")
+		return
+	}
+
+	files, err := h.fileService.GetCourseFiles(uint(courseID))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "获取文件列表失败")
+		return
+	}
+
+	response.Success(c, files)
+}
+
+// DeleteCourseFile 删除课程文件
+func (h *AdminHandler) DeleteCourseFile(c *gin.Context) {
+	fileID, err := strconv.ParseUint(c.Param("fileId"), 10, 64)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "文件ID无效")
+		return
+	}
+
+	if err := h.fileService.DeleteCourseFile(uint(fileID)); err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"message": "删除成功"})
 }

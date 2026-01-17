@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { useUserStore } from '../stores/user'
+import { onMounted } from 'vue'
 
 const userStore = useUserStore()
+
+onMounted(async () => {
+  if (userStore.isLoggedIn && !userStore.user) {
+    await userStore.fetchProfile()
+  }
+})
 </script>
 
 <template>
@@ -11,6 +18,13 @@ const userStore = useUserStore()
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Car4Race</h1>
         <nav class="flex gap-4">
           <template v-if="userStore.isLoggedIn">
+            <router-link
+              v-if="userStore.isAdmin"
+              to="/admin"
+              class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            >
+              管理后台
+            </router-link>
             <router-link to="/profile" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
               {{ userStore.user?.nickname || '个人中心' }}
             </router-link>

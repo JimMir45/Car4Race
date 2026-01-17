@@ -216,3 +216,55 @@ func (r *CourseRepository) GetAllInviteCodes(page, pageSize int) ([]model.Invite
 
 	return codes, total, err
 }
+
+// ========== CourseFile ==========
+
+// CreateCourseFile 创建课程文件记录
+func (r *CourseRepository) CreateCourseFile(file *model.CourseFile) error {
+	return r.db.Create(file).Error
+}
+
+// GetCourseFileByID 根据 ID 获取课程文件
+func (r *CourseRepository) GetCourseFileByID(id uint) (*model.CourseFile, error) {
+	var file model.CourseFile
+	err := r.db.First(&file, id).Error
+	return &file, err
+}
+
+// GetCourseFiles 获取课程的所有文件
+func (r *CourseRepository) GetCourseFiles(courseID uint) ([]model.CourseFile, error) {
+	var files []model.CourseFile
+	err := r.db.Where("course_id = ?", courseID).Order("sort ASC, created_at ASC").Find(&files).Error
+	return files, err
+}
+
+// DeleteCourseFile 删除课程文件记录
+func (r *CourseRepository) DeleteCourseFile(id uint) error {
+	return r.db.Delete(&model.CourseFile{}, id).Error
+}
+
+// GetMaxCourseFileSort 获取课程文件的最大排序号
+func (r *CourseRepository) GetMaxCourseFileSort(courseID uint) (int, error) {
+	var maxSort int
+	err := r.db.Model(&model.CourseFile{}).
+		Where("course_id = ?", courseID).
+		Select("COALESCE(MAX(sort), 0)").
+		Scan(&maxSort).Error
+	return maxSort, err
+}
+
+// GetCourseWithFiles 获取课程及其文件
+func (r *CourseRepository) GetCourseWithFiles(id uint) (*model.Course, error) {
+	var course model.Course
+	err := r.db.Preload("Files").First(&course, id).Error
+	return &course, err
+}
+
+// GetCourseBySlugWithFiles 根据 slug 获取课程及其文件
+func (r *CourseRepository) GetCourseBySlugWithFiles(slug string) (*model.Course, error) {
+	var course model.Course
+	err := r.db.Preload("Files", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort ASC, created_at ASC")
+	}).Where("slug = ?", slug).First(&course).Error
+	return &course, err
+}

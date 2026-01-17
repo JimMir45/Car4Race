@@ -59,9 +59,59 @@ export const orderApi = {
 
 // Download API
 export const downloadApi = {
-  createToken: (courseId: number) =>
-    api.post('/hpa/download', { course_id: courseId }),
+  createToken: (courseId: number, fileId?: number) =>
+    api.post('/hpa/download', { course_id: courseId, file_id: fileId }),
   download: (token: string) => api.get(`/hpa/download/${token}`),
+}
+
+// Admin API
+export const adminApi = {
+  // 课程管理
+  getCourses: (params?: { page?: number; page_size?: number }) =>
+    api.get('/admin/courses', { params }),
+  createCourse: (data: {
+    title: string
+    slug: string
+    description?: string
+    cover_image?: string
+    price: number
+    orig_price?: number
+    is_public?: boolean
+    sort?: number
+  }) => api.post('/admin/courses', data),
+  updateCourse: (id: number, data: {
+    title: string
+    slug: string
+    description?: string
+    cover_image?: string
+    price: number
+    orig_price?: number
+    is_public?: boolean
+    sort?: number
+  }) => api.put(`/admin/courses/${id}`, data),
+  deleteCourse: (id: number) => api.delete(`/admin/courses/${id}`),
+
+  // 课程文件管理
+  getCourseFiles: (courseId: number) => api.get(`/admin/courses/${courseId}/files`),
+  uploadCourseFile: (courseId: number, file: File, fileType: 'intro' | 'resource') => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('file_type', fileType)
+    return api.post(`/admin/courses/${courseId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deleteCourseFile: (courseId: number, fileId: number) =>
+    api.delete(`/admin/courses/${courseId}/files/${fileId}`),
+
+  // 邀请码管理
+  getInviteCodes: (params?: { page?: number; page_size?: number }) =>
+    api.get('/admin/invite-codes', { params }),
+  createInviteCode: (data: {
+    course_id: number
+    max_uses?: number
+    expire_at?: string
+  }) => api.post('/admin/invite-codes', data),
 }
 
 export default api

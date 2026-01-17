@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"car4race/internal/model"
 	"car4race/internal/service"
 	"car4race/pkg/errcode"
 	"car4race/pkg/response"
@@ -12,11 +13,12 @@ import (
 )
 
 type CourseHandler struct {
-	service *service.CourseService
+	service     *service.CourseService
+	fileService *service.FileService
 }
 
-func NewCourseHandler(service *service.CourseService) *CourseHandler {
-	return &CourseHandler{service: service}
+func NewCourseHandler(service *service.CourseService, fileService *service.FileService) *CourseHandler {
+	return &CourseHandler{service: service, fileService: fileService}
 }
 
 // GetCourses 获取课程列表
@@ -43,7 +45,7 @@ func (h *CourseHandler) GetCourses(c *gin.Context) {
 func (h *CourseHandler) GetCourse(c *gin.Context) {
 	slug := c.Param("slug")
 
-	course, err := h.service.GetCourseBySlug(slug)
+	course, err := h.service.GetCourseBySlugWithFiles(slug)
 	if err != nil {
 		response.ErrorWithCode(c, http.StatusNotFound, errcode.CodeCourseNotFound, errcode.Message(errcode.CodeCourseNotFound))
 		return
@@ -62,9 +64,25 @@ func (h *CourseHandler) GetCourse(c *gin.Context) {
 		purchased, _ = h.service.CheckUserPurchased(userID, course.ID)
 	}
 
+	// 获取课程介绍 Markdown 内容
+	introContent, _ := h.fileService.GetCourseIntroContent(course.ID)
+
+	// 分离 intro 和 resource 文件
+	var introFiles, resourceFiles []model.CourseFile
+	for _, f := range course.Files {
+		if f.FileType == "intro" {
+			introFiles = append(introFiles, f)
+		} else {
+			resourceFiles = append(resourceFiles, f)
+		}
+	}
+
 	response.Success(c, gin.H{
-		"course":    course,
-		"purchased": purchased,
+		"course":         course,
+		"purchased":      purchased,
+		"intro_content":  introContent,
+		"intro_files":    introFiles,
+		"resource_files": resourceFiles,
 	})
 }
 
@@ -155,6 +173,7 @@ func (h *CourseHandler) RedeemCode(c *gin.Context) {
 // CreateDownloadRequest 创建下载请求
 type CreateDownloadRequest struct {
 	CourseID uint `json:"course_id" binding:"required"`
+	FileID   uint `json:"file_id"` // 可选，指定要下载的文件ID
 }
 
 // CreateDownload 创建下载令牌
@@ -171,7 +190,7 @@ func (h *CourseHandler) CreateDownload(c *gin.Context) {
 		return
 	}
 
-	token, err := h.service.CreateDownloadToken(userID, req.CourseID)
+	token, err := h.service.CreateDownloadToken(userID, req.CourseID, req.FileID)
 	if err != nil {
 		response.ErrorFromErr(c, err)
 		return
@@ -194,9 +213,35 @@ func (h *CourseHandler) Download(c *gin.Context) {
 		return
 	}
 
-	// 返回课程视频 URL（实际应用中应该返回文件流或临时 URL）
+	// 如果有指定文件，返回文件下载信息
+	if download.FileID > 0 {
+		filePath, fileName, err := h.fileService.GetFilePath(download.FileID)
+		if err != nil {
+			response.Error(c, http.StatusNotFound, "文件不存在")
+			return
+		}
+		c.FileAttachment(filePath, fileName)
+		return
+	}
+
+	// 否则返回课程的资源文件列表
+	files, err := h.fileService.GetCourseFiles(download.CourseID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "获取文件列表失败")
+		return
+	}
+
+	// 过滤出资源文件
+	var resourceFiles []model.CourseFile
+	for _, f := range files {
+		if f.FileType == "resource" {
+			resourceFiles = append(resourceFiles, f)
+		}
+	}
+
 	response.Success(c, gin.H{
-		"video_url": download.Course.VideoURL,
+		"course_id": download.CourseID,
 		"title":     download.Course.Title,
+		"files":     resourceFiles,
 	})
 }

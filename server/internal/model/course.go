@@ -15,18 +15,36 @@ type Course struct {
 	CoverImage  string         `gorm:"size:500" json:"cover_image"`
 	Price       float64        `gorm:"not null" json:"price"`
 	OrigPrice   float64        `gorm:"default:0" json:"orig_price"`
-	VideoURL    string         `gorm:"size:500" json:"video_url"`
-	Duration    int            `gorm:"default:0" json:"duration"` // 视频时长（秒）
+	IntroPath   string         `gorm:"size:500" json:"intro_path"` // Markdown 介绍文件路径
 	SalesCount  int            `gorm:"default:0" json:"sales_count"`
 	IsPublic    bool           `gorm:"default:true" json:"is_public"`
 	Sort        int            `gorm:"default:0" json:"sort"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+
+	// 关联
+	Files []CourseFile `gorm:"foreignKey:CourseID" json:"files,omitempty"`
 }
 
 func (Course) TableName() string {
 	return "hpa_courses"
+}
+
+// CourseFile 课程文件表
+type CourseFile struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CourseID  uint      `gorm:"index;not null" json:"course_id"`
+	FileType  string    `gorm:"size:20;not null" json:"file_type"` // intro | resource
+	FileName  string    `gorm:"size:200;not null" json:"file_name"`
+	FilePath  string    `gorm:"size:500;not null" json:"file_path"`
+	FileSize  int64     `gorm:"default:0" json:"file_size"`
+	Sort      int       `gorm:"default:0" json:"sort"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (CourseFile) TableName() string {
+	return "hpa_course_files"
 }
 
 // Order 订单表
@@ -77,6 +95,7 @@ type Download struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	UserID    uint      `gorm:"index;not null" json:"user_id"`
 	CourseID  uint      `gorm:"index;not null" json:"course_id"`
+	FileID    uint      `gorm:"default:0" json:"file_id"` // 指定要下载的文件ID，0表示下载所有
 	Token     string    `gorm:"uniqueIndex;size:100;not null" json:"token"`
 	ExpireAt  time.Time `json:"expire_at"`
 	Used      bool      `gorm:"default:false" json:"used"`

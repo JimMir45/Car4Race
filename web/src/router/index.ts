@@ -36,6 +36,28 @@ const router = createRouter({
       component: () => import('../views/Orders.vue'),
       meta: { requiresAuth: true },
     },
+    // 管理后台路由
+    {
+      path: '/admin',
+      component: () => import('../views/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/courses',
+        },
+        {
+          path: 'courses',
+          name: 'admin-courses',
+          component: () => import('../views/admin/AdminCourses.vue'),
+        },
+        {
+          path: 'invite-codes',
+          name: 'admin-invite-codes',
+          component: () => import('../views/admin/AdminInviteCodes.vue'),
+        },
+      ],
+    },
   ],
 })
 
