@@ -26,10 +26,23 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// 自动迁移
+	// 自动迁移 - 共用表
 	if err := db.AutoMigrate(
 		&model.User{},
 		&model.VerificationCode{},
+	); err != nil {
+		return nil, err
+	}
+
+	// 自动迁移 - 私域视频网站表
+	if err := db.AutoMigrate(
+		&model.Category{},
+		&model.Note{},
+		&model.BrowseHistory{},
+		&model.Course{},
+		&model.Order{},
+		&model.InviteCode{},
+		&model.Download{},
 	); err != nil {
 		return nil, err
 	}

@@ -44,3 +44,7 @@ nginx/ssl/*.crt
 # 日志
 *.log
 logs/
+
+# Claude 插件生成的文件
+CLAUDE.md
+**/CLAUDE.md
