@@ -10,33 +10,37 @@
 *.swp
 *.swo
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# Go
+server/bin/
+server/data/
+*.exe
+*.exe~
+*.dll
 *.so
-.Python
-*.egg-info/
-.eggs/
-*.egg
-venv/
-.env
+*.dylib
+*.test
+*.out
 
 # Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+web/dist/
 
-# 排除项目中的其他文件，只保留文档
-# Exclude everything
-/*
+# 环境变量
+.env
+.env.local
+.env.*.local
 
-# Include only these
-!README.md
-!LICENSE
-!.gitignore
-!docs/
+# 数据目录
+data/
 
-# Exclude docs subdirectory junk
-docs/.DS_Store
+# SSL 证书
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# 日志
+*.log
+logs/

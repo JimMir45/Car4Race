@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: car4race
+    restart: unless-stopped
+    environment:
+      - ENV=production
+      - PORT=8080
+      - DB_PATH=/app/data/car4race.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - car4race-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: car4race-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - car4race-network
+
+networks:
+  car4race-network:
+    driver: bridge
