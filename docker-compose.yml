@@ -10,10 +10,38 @@ services:
       - PORT=8080
       - DB_PATH=/app/data/car4race.db
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      # MinIO 配置
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-car4race}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-car4race123}
+      - MINIO_BUCKET=${MINIO_BUCKET:-car4race}
+      - MINIO_USE_SSL=false
     volumes:
-      - ./data:/app/data
+      - ./data/db:/app/data
+    depends_on:
+      - minio
     networks:
       - car4race-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: car4race-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-car4race}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-car4race123}
+    volumes:
+      - ./data/minio:/data
+    ports:
+      - "9001:9001"  # MinIO Console（仅开发/管理用）
+    networks:
+      - car4race-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     image: nginx:alpine
@@ -27,6 +55,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
+      - minio
     networks:
       - car4race-network
 

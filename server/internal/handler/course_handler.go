@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"car4race/internal/model"
 	"car4race/internal/service"
@@ -215,13 +217,27 @@ func (h *CourseHandler) Download(c *gin.Context) {
 
 	// 如果有指定文件，返回文件下载信息
 	if download.FileID > 0 {
-		filePath, fileName, err := h.fileService.GetFilePath(download.FileID)
+		// 方式1：使用预签名 URL（推荐，减轻后端压力）
+		presignedURL, err := h.fileService.GetPresignedURL(download.FileID, 1*time.Hour)
 		if err != nil {
 			response.Error(c, http.StatusNotFound, "文件不存在")
 			return
 		}
-		c.FileAttachment(filePath, fileName)
+		c.Redirect(http.StatusTemporaryRedirect, presignedURL)
 		return
+
+		// 方式2：通过后端代理下载（备用，适合内网场景）
+		// obj, fileName, fileSize, err := h.fileService.GetFileObject(download.FileID)
+		// if err != nil {
+		// 	response.Error(c, http.StatusNotFound, "文件不存在")
+		// 	return
+		// }
+		// defer obj.Close()
+		// c.Header("Content-Disposition", "attachment; filename="+fileName)
+		// c.Header("Content-Type", "application/octet-stream")
+		// c.Header("Content-Length", strconv.FormatInt(fileSize, 10))
+		// io.Copy(c.Writer, obj)
+		// return
 	}
 
 	// 否则返回课程的资源文件列表
@@ -245,3 +261,6 @@ func (h *CourseHandler) Download(c *gin.Context) {
 		"files":     resourceFiles,
 	})
 }
+
+// Unused import placeholder - will be used if proxy download is enabled
+var _ = io.Copy

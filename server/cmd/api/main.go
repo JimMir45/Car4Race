@@ -35,7 +35,10 @@ func main() {
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	contentService := service.NewContentService(contentRepo)
 	courseService := service.NewCourseService(courseRepo, userRepo)
-	fileService := service.NewFileService(courseRepo, cfg.UploadPath)
+	fileService, err := service.NewFileService(courseRepo, cfg)
+	if err != nil {
+		log.Fatalf("Failed to init file service: %v", err)
+	}
 
 	// 初始化处理器
 	userHandler := handler.NewUserHandler(userService)
