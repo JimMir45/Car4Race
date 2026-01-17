@@ -3,12 +3,12 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"time"
 
 	"car4race/internal/model"
 	"car4race/internal/repository"
+	"car4race/pkg/errcode"
 )
 
 type CourseService struct {
@@ -65,13 +65,13 @@ func (s *CourseService) CreateOrder(userID, courseID uint) (*model.Order, error)
 	// 检查课程是否存在
 	course, err := s.repo.GetCourseByID(courseID)
 	if err != nil {
-		return nil, errors.New("课程不存在")
+		return nil, errcode.New(errcode.CodeCourseNotFound)
 	}
 
 	// 检查是否已购买
 	purchased, _ := s.repo.CheckUserPurchased(userID, courseID)
 	if purchased {
-		return nil, errors.New("您已购买过该课程")
+		return nil, errcode.New(errcode.CodeAlreadyPurchased)
 	}
 
 	// 生成订单号
@@ -113,24 +113,24 @@ func (s *CourseService) RedeemInviteCode(userID uint, code string) (*model.Order
 	// 获取邀请码
 	inviteCode, err := s.repo.GetInviteCode(code)
 	if err != nil {
-		return nil, errors.New("邀请码无效")
+		return nil, errcode.New(errcode.CodeInvalidInvite)
 	}
 
 	// 检查邀请码是否可用
 	if !inviteCode.IsActive {
-		return nil, errors.New("邀请码已失效")
+		return nil, errcode.New(errcode.CodeInvalidInvite)
 	}
 	if inviteCode.UsedCount >= inviteCode.MaxUses {
-		return nil, errors.New("邀请码已用完")
+		return nil, errcode.NewWithMessage(errcode.CodeInvalidInvite, "邀请码已用完")
 	}
 	if inviteCode.ExpireAt != nil && inviteCode.ExpireAt.Before(time.Now()) {
-		return nil, errors.New("邀请码已过期")
+		return nil, errcode.NewWithMessage(errcode.CodeInvalidInvite, "邀请码已过期")
 	}
 
 	// 检查是否已购买
 	purchased, _ := s.repo.CheckUserPurchased(userID, inviteCode.CourseID)
 	if purchased {
-		return nil, errors.New("您已拥有该课程")
+		return nil, errcode.New(errcode.CodeAlreadyPurchased)
 	}
 
 	// 创建订单（已支付状态）
@@ -170,14 +170,14 @@ func (s *CourseService) CreateDownloadToken(userID, courseID uint) (string, erro
 		// 检查是否是 VIP
 		user, err := s.userRepo.FindByID(userID)
 		if err != nil || !user.CanDownload {
-			return "", errors.New("您没有下载权限")
+			return "", errcode.New(errcode.CodeNotPurchased)
 		}
 	}
 
 	// 检查今日下载次数
 	count, _ := s.repo.CountUserDownloadsToday(userID)
 	if count >= 3 {
-		return "", errors.New("今日下载次数已用完")
+		return "", errcode.New(errcode.CodeDownloadExceeded)
 	}
 
 	// 生成 token
@@ -201,15 +201,15 @@ func (s *CourseService) CreateDownloadToken(userID, courseID uint) (string, erro
 func (s *CourseService) ValidateDownloadToken(token string) (*model.Download, error) {
 	download, err := s.repo.GetDownloadByToken(token)
 	if err != nil {
-		return nil, errors.New("下载链接无效")
+		return nil, errcode.New(errcode.CodeDownloadExpired)
 	}
 
 	if download.Used {
-		return nil, errors.New("下载链接已使用")
+		return nil, errcode.NewWithMessage(errcode.CodeDownloadExpired, "下载链接已使用")
 	}
 
 	if download.ExpireAt.Before(time.Now()) {
-		return nil, errors.New("下载链接已过期")
+		return nil, errcode.New(errcode.CodeDownloadExpired)
 	}
 
 	// 标记为已使用

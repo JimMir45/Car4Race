@@ -85,7 +85,7 @@ func main() {
 			hpa.GET("/notes", contentHandler.GetNotes)
 			hpa.GET("/notes/:slug", contentHandler.GetNote)
 			hpa.GET("/courses", courseHandler.GetCourses)
-			hpa.GET("/courses/:slug", courseHandler.GetCourse)
+			hpa.GET("/courses/:slug", middleware.OptionalJWTAuth(cfg.JWTSecret), courseHandler.GetCourse)
 
 			// 需要登录
 			hpaAuth := hpa.Group("")

@@ -8,6 +8,7 @@ import (
 
 	"car4race/internal/model"
 	"car4race/internal/repository"
+	"car4race/pkg/errcode"
 
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
@@ -33,7 +34,7 @@ func (s *UserService) SendVerificationCode(phone string) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("请稍后再试")
+		return errcode.NewWithMessage(errcode.CodeRateLimitExceed, "请求过于频繁，请60秒后再试")
 	}
 
 	// 生成6位随机验证码
@@ -62,7 +63,7 @@ func (s *UserService) Login(phone, code string) (string, *model.User, error) {
 	// 验证验证码
 	vc, err := s.repo.FindValidCode(phone, code, "login")
 	if err != nil {
-		return "", nil, errors.New("验证码无效或已过期")
+		return "", nil, errcode.New(errcode.CodeInvalidCode)
 	}
 
 	// 标记验证码已使用
@@ -75,7 +76,7 @@ func (s *UserService) Login(phone, code string) (string, *model.User, error) {
 			// 新用户，自动注册
 			user = &model.User{
 				Phone:    phone,
-				Username: generateUsername(),
+				Username: generateUsername(phone),
 				Nickname: "用户" + phone[len(phone)-4:],
 				Role:     "user",
 				Status:   "active",
@@ -90,7 +91,7 @@ func (s *UserService) Login(phone, code string) (string, *model.User, error) {
 
 	// 检查用户状态
 	if user.Status == "banned" {
-		return "", nil, errors.New("账号已被禁用")
+		return "", nil, errcode.NewWithMessage(errcode.CodeForbidden, "账号已被禁用")
 	}
 
 	// 生成 JWT
@@ -127,12 +128,9 @@ func (s *UserService) generateToken(user *model.User) (string, error) {
 	return token.SignedString([]byte(s.jwtSecret))
 }
 
-// generateUsername 生成随机用户名
-func generateUsername() string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, 8)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return "user_" + string(b)
+// generateUsername 生成用户名：YYYYMMDD + 手机号后4位
+func generateUsername(phone string) string {
+	datePart := time.Now().Format("20060102")
+	phoneLast4 := phone[len(phone)-4:]
+	return datePart + phoneLast4
 }

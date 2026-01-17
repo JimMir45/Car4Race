@@ -42,4 +42,26 @@ export const userApi = {
     api.put('/user/profile', data),
 }
 
+// Course API
+export const courseApi = {
+  getList: (params?: { page?: number; page_size?: number; sort?: string }) =>
+    api.get('/hpa/courses', { params }),
+  getDetail: (slug: string) => api.get(`/hpa/courses/${slug}`),
+}
+
+// Order API
+export const orderApi = {
+  getList: (params?: { page?: number; page_size?: number }) =>
+    api.get('/hpa/orders', { params }),
+  create: (courseId: number) => api.post('/hpa/orders', { course_id: courseId }),
+  redeemCode: (code: string) => api.post('/hpa/redeem', { code }),
+}
+
+// Download API
+export const downloadApi = {
+  createToken: (courseId: number) =>
+    api.post('/hpa/download', { course_id: courseId }),
+  download: (token: string) => api.get(`/hpa/download/${token}`),
+}
+
 export default api

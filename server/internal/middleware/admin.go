@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 
+	"car4race/pkg/errcode"
 	"car4race/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ func AdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role := c.GetString("role")
 		if role != "admin" {
-			response.Error(c, http.StatusForbidden, "需要管理员权限")
+			response.ErrorWithCode(c, http.StatusForbidden, errcode.CodeAdminRequired, errcode.Message(errcode.CodeAdminRequired))
 			c.Abort()
 			return
 		}

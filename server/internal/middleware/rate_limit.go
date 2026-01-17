@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"car4race/pkg/errcode"
 	"car4race/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +47,7 @@ func RateLimit() gin.HandlerFunc {
 
 		// 检查是否超过限制
 		if len(valid) >= limiter.limit {
-			response.Error(c, http.StatusTooManyRequests, "请求过于频繁，请稍后再试")
+			response.ErrorWithCode(c, http.StatusTooManyRequests, errcode.CodeRateLimitExceed, errcode.Message(errcode.CodeRateLimitExceed))
 			c.Abort()
 			return
 		}

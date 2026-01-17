@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"car4race/internal/service"
+	"car4race/pkg/errcode"
 	"car4race/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -39,18 +40,18 @@ type UpdateProfileRequest struct {
 func (h *UserHandler) SendCode(c *gin.Context) {
 	var req SendCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	// 验证手机号格式
 	if !isValidPhone(req.Phone) {
-		response.Error(c, http.StatusBadRequest, "手机号格式不正确")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "手机号格式不正确")
 		return
 	}
 
 	if err := h.service.SendVerificationCode(req.Phone); err != nil {
-		response.Error(c, http.StatusTooManyRequests, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 
@@ -61,25 +62,25 @@ func (h *UserHandler) SendCode(c *gin.Context) {
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	// 验证手机号格式
 	if !isValidPhone(req.Phone) {
-		response.Error(c, http.StatusBadRequest, "手机号格式不正确")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "手机号格式不正确")
 		return
 	}
 
 	// 验证验证码格式
 	if len(req.Code) != 6 {
-		response.Error(c, http.StatusBadRequest, "验证码格式不正确")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "验证码格式不正确")
 		return
 	}
 
 	token, user, err := h.service.Login(req.Phone, req.Code)
 	if err != nil {
-		response.Error(c, http.StatusUnauthorized, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 
@@ -93,13 +94,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
 	user, err := h.service.GetUserByID(userID)
 	if err != nil {
-		response.Error(c, http.StatusNotFound, "用户不存在")
+		response.ErrorWithCode(c, http.StatusNotFound, errcode.CodeUserNotFound, errcode.Message(errcode.CodeUserNotFound))
 		return
 	}
 
@@ -110,19 +111,19 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
 	var req UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	user, err := h.service.GetUserByID(userID)
 	if err != nil {
-		response.Error(c, http.StatusNotFound, "用户不存在")
+		response.ErrorWithCode(c, http.StatusNotFound, errcode.CodeUserNotFound, errcode.Message(errcode.CodeUserNotFound))
 		return
 	}
 

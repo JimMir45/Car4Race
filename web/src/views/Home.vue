@@ -35,9 +35,9 @@ const userStore = useUserStore()
           <p class="text-gray-600 dark:text-gray-300 mb-4">
             个人知识分享平台，支持笔记展示、课程销售、会员体系
           </p>
-          <a href="#" class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <router-link to="/courses" class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             进入 →
-          </a>
+          </router-link>
         </div>
 
         <!-- 圈速榜入口 -->

@@ -1,6 +1,8 @@
 package response
 
 import (
+	"car4race/pkg/errcode"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,4 +36,39 @@ func ErrorWithCode(c *gin.Context, httpCode int, code int, message string) {
 		Code:    code,
 		Message: message,
 	})
+}
+
+// ErrorFromErr 根据 errcode.Error 自动响应
+func ErrorFromErr(c *gin.Context, err error) {
+	if e, ok := err.(*errcode.Error); ok {
+		httpCode := getHTTPCode(e.Code)
+		c.JSON(httpCode, Response{
+			Code:    e.Code,
+			Message: e.Message,
+		})
+		return
+	}
+	// 非 errcode.Error 类型，使用通用错误
+	c.JSON(400, Response{
+		Code:    400,
+		Message: err.Error(),
+	})
+}
+
+// getHTTPCode 根据业务错误码获取 HTTP 状态码
+func getHTTPCode(code int) int {
+	switch {
+	case code >= 40001 && code < 40100:
+		return 400 // 参数错误
+	case code == errcode.CodeUnauthorized:
+		return 401 // 未授权
+	case code >= 40301 && code < 40400:
+		return 403 // 禁止访问
+	case code >= 40401 && code < 40500:
+		return 404 // 资源不存在
+	case code == errcode.CodeRateLimitExceed:
+		return 429 // 请求过多
+	default:
+		return 400
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"car4race/internal/service"
+	"car4race/pkg/errcode"
 	"car4race/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -44,12 +45,18 @@ func (h *CourseHandler) GetCourse(c *gin.Context) {
 
 	course, err := h.service.GetCourseBySlug(slug)
 	if err != nil {
-		response.Error(c, http.StatusNotFound, "课程不存在")
+		response.ErrorWithCode(c, http.StatusNotFound, errcode.CodeCourseNotFound, errcode.Message(errcode.CodeCourseNotFound))
 		return
 	}
 
-	// 检查用户是否已购买
-	userID := c.GetUint("user_id")
+	// 检查用户是否已购买（支持可选登录）
+	var userID uint
+	if val, exists := c.Get("user_id"); exists {
+		if v, ok := val.(uint); ok {
+			userID = v
+		}
+	}
+
 	purchased := false
 	if userID > 0 {
 		purchased, _ = h.service.CheckUserPurchased(userID, course.ID)
@@ -70,19 +77,19 @@ type CreateOrderRequest struct {
 func (h *CourseHandler) CreateOrder(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
 	var req CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	order, err := h.service.CreateOrder(userID, req.CourseID)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 
@@ -93,7 +100,7 @@ func (h *CourseHandler) CreateOrder(c *gin.Context) {
 func (h *CourseHandler) GetOrders(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
@@ -123,19 +130,19 @@ type RedeemCodeRequest struct {
 func (h *CourseHandler) RedeemCode(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
 	var req RedeemCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	order, err := h.service.RedeemInviteCode(userID, req.Code)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 
@@ -154,25 +161,25 @@ type CreateDownloadRequest struct {
 func (h *CourseHandler) CreateDownload(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
-		response.Error(c, http.StatusUnauthorized, "未登录")
+		response.ErrorWithCode(c, http.StatusUnauthorized, errcode.CodeUnauthorized, errcode.Message(errcode.CodeUnauthorized))
 		return
 	}
 
 	var req CreateDownloadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "参数错误")
+		response.ErrorWithCode(c, http.StatusBadRequest, errcode.CodeInvalidParam, "参数错误")
 		return
 	}
 
 	token, err := h.service.CreateDownloadToken(userID, req.CourseID)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 
 	response.Success(c, gin.H{
-		"token":      token,
-		"expire_in":  86400, // 24小时
+		"token":        token,
+		"expire_in":    86400, // 24小时
 		"download_url": "/api/v1/hpa/download/" + token,
 	})
 }
@@ -183,7 +190,7 @@ func (h *CourseHandler) Download(c *gin.Context) {
 
 	download, err := h.service.ValidateDownloadToken(token)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, err.Error())
+		response.ErrorFromErr(c, err)
 		return
 	}
 

@@ -172,12 +172,14 @@ func (r *CourseRepository) MarkDownloadUsed(id uint) error {
 	return r.db.Model(&model.Download{}).Where("id = ?", id).Update("used", true).Error
 }
 
-// CountUserDownloadsToday 统计用户今日下载次数
+// CountUserDownloadsToday 统计用户今日创建的下载令牌数
 func (r *CourseRepository) CountUserDownloadsToday(userID uint) (int64, error) {
 	var count int64
-	today := time.Now().Truncate(24 * time.Hour)
+	// 获取今日零点（本地时区）
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	err := r.db.Model(&model.Download{}).
-		Where("user_id = ? AND created_at >= ? AND used = ?", userID, today, true).
+		Where("user_id = ? AND created_at >= ?", userID, today).
 		Count(&count).Error
 	return count, err
 }
